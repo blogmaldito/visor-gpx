@@ -1005,19 +1005,19 @@ profHtml+'\n'+
 '  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">\n'+
 '  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"><\/script>\n'+
 (showProf?'  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"><\/script>\n':'')+
-'  <script>\n'+
-'  (function(){\n'+
-'    var pp='+ptsJ+';\n'+
-'    var m=L.map("'+uid+'");\n'+
-'    L.tileLayer('+JSON.stringify(tileUrl)+',{attribution:'+JSON.stringify(tileAtt)+',maxZoom:19}).addTo(m);\n'+
-trackScript+'\n'+
-boundsScript+'\n'+
-abScript+'\n'+
-poisScript+'\n'+
-profScript+'\n'+
-'    setTimeout(function(){m.invalidateSize();m.fitBounds(bnds,{padding:[20,20]});},300);\n'+
-'  })();\n'+
-'  <\/script>\n'+
+'  <script>'+
+'(function(){'+
+'var pp='+ptsJ+';'+
+'var m=L.map("'+uid+'");'+
+'L.tileLayer('+JSON.stringify(tileUrl)+',{attribution:'+JSON.stringify(tileAtt)+',maxZoom:19}).addTo(m);'+
+trackScript+
+boundsScript+
+abScript+
+poisScript+
+profScript+
+'setTimeout(function(){m.invalidateSize();m.fitBounds(bnds,{padding:[20,20]});},300);'+
+'})();'+
+'<\/script>\n'+
 '</div>';
 
   return html;
