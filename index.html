@@ -253,11 +253,15 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#6b7f6b;
     <div style="font-size:10px;color:#444;margin-top:-6px;margin-bottom:14px;">Pasa el ratón sobre el perfil para ver altitud y km. El degradado y el pincel se aplican también al track en el mapa, sincronizados.</div>
 
     <div class="chart-wrap">
-      <div class="sec-label" style="margin-bottom:6px;">Sustituir perfil por imagen</div>
-      <div style="font-size:10px;color:#666;margin-bottom:8px;line-height:1.5;">Sube una foto o captura del perfil de altimetría oficial de la carrera. Claude interpretará la curva y la redibujará automáticamente sobre la distancia de tu track (requiere GPX/KML ya cargado).</div>
+      <div class="sec-label" style="margin-bottom:6px;">Sustituir perfil por imagen (vía Claude en el chat)</div>
+      <div style="font-size:10px;color:#666;margin-bottom:8px;line-height:1.5;">Esta herramienta, una vez alojada fuera de Claude.ai (GitHub Pages, WordPress...), no puede llamar a la API de Claude por sí sola. El flujo es: 1) sube tu imagen del perfil a Claude en un chat normal, 2) pídele que la interprete y te devuelva el JSON de puntos, 3) pega ese JSON aquí abajo.</div>
       <div class="action-row">
-        <input type="file" id="img-inp" accept="image/*" style="display:none;" onchange="loadProfileImage(this)">
-        <button class="btn btn-accent" onclick="document.getElementById('img-inp').click()">📷 Subir imagen de perfil</button>
+        <button class="btn" onclick="copyImgPrompt()">📋 Copiar instrucciones para Claude</button>
+        <span id="img-prompt-status" style="font-size:11px;color:#6b7f6b;"></span>
+      </div>
+      <textarea id="img-json" placeholder='Pega aquí el JSON, p.ej: {"points":[[0,45],[1,60],...]}' style="width:100%;min-height:70px;font-family:monospace;font-size:11px;background:#1a1a1a;color:#f0ede8;border:1px solid #2a2a2a;padding:8px;margin-bottom:8px;resize:vertical;"></textarea>
+      <div class="action-row">
+        <button class="btn btn-accent" onclick="applyImageJSON()">✓ Aplicar perfil desde JSON</button>
         <button class="btn" id="btn-restore-ele" onclick="restoreGPSProfile()" style="display:none;">↺ Restaurar altitud GPS</button>
         <span id="img-status"></span>
       </div>
@@ -321,16 +325,30 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#6b7f6b;
 
   <!-- EXPORT -->
   <div class="panel" id="panel-export">
+    <div class="sec-label" style="margin-bottom:6px;">Opción recomendada: iframe (evita el bug de wpautop en WordPress)</div>
+    <div style="font-size:10px;color:#666;margin-bottom:8px;line-height:1.5;">WordPress a veces mete etiquetas &lt;p&gt; dentro del script y lo rompe. Con este método, el mapa vive en una página aparte alojada en GitHub Pages y en WordPress solo pegas una línea de iframe — inmune a ese bug.</div>
+    <div class="ctrl-row"><label>Nombre de archivo</label><input type="text" id="cfg-slug" placeholder="se genera del nombre de la ruta" style="width:260px;"></div>
+    <div class="ctrl-row"><label>URL base GitHub Pages</label><input type="text" id="cfg-base-url" value="https://blogmaldito.github.io/visor-gpx/mapas/" style="width:340px;"></div>
     <div class="action-row">
-      <button class="btn btn-primary" onclick="buildWidget()">▶ Generar widget</button>
-      <button class="btn btn-accent" onclick="copyWidget()">📋 Copiar HTML</button>
+      <button class="btn btn-primary" onclick="downloadStandalonePage()">⬇ 1. Descargar página independiente</button>
+      <button class="btn btn-accent" onclick="copyIframeEmbed()">📋 2. Copiar código iframe</button>
+      <span id="iframe-status" style="font-size:11px;"></span>
+    </div>
+    <div style="font-size:10px;color:#444;margin-bottom:6px;">Sube el .html descargado a tu repo <code>visor-gpx</code>, dentro de una carpeta <code>/mapas/</code> (mismo proceso que con index.html). Luego pega el iframe en el bloque de código de WordPress.</div>
+    <div class="code-box" id="iframe-code-out">El código del iframe aparecerá aquí tras generarlo.</div>
+
+    <div class="divider"></div>
+    <div class="sec-label" style="margin-bottom:6px;">Alternativa: HTML directo (más simple, pero sensible al bug de wpautop)</div>
+    <div class="action-row">
+      <button class="btn" onclick="buildWidget()">▶ Generar widget</button>
+      <button class="btn" onclick="copyWidget()">📋 Copiar HTML</button>
       <button class="btn" onclick="downloadGPX()">⬇ Descargar GPX editado</button>
       <span id="copy-status"></span>
     </div>
-    <div style="font-size:10px;color:#444;margin-bottom:6px;">Pega el código en un bloque HTML de WordPress. El mapa funciona directamente, sin plugins. El degradado por pendiente y la pintura del pincel se incluyen en el widget exportado (estáticos, no editables ahí); la distancia homologada también queda aplicada al eje del perfil.</div>
     <div class="code-box" id="code-out">Pulsa "Generar widget" para ver el código.</div>
     <div class="divider"></div>
     <div class="sec-label">Vista previa</div>
+    <div style="font-size:10px;color:#444;margin-bottom:6px;">Esta vista previa nunca ejecuta el mapa (limitación del navegador al inyectar HTML); solo sirve para ver la maquetación de texto/estilos.</div>
     <div id="preview-out"></div>
   </div>
 
@@ -796,48 +814,33 @@ function renderChart(){
   attachBrushEvents();
 }
 
-// ── PERFIL DESDE IMAGEN ──
-function loadProfileImage(inp){
-  var f=inp.files[0];if(!f)return;
-  if(!editPts.length){alert('Carga primero un GPX o KML.');inp.value='';return;}
-  var status=document.getElementById('img-status');
-  status.style.color='#e09a30';status.textContent='Analizando imagen…';
-  var r=new FileReader();
-  r.onload=function(e){
-    var dataUrl=e.target.result;
-    var mediaType=dataUrl.substring(5,dataUrl.indexOf(';'));
-    var base64=dataUrl.substring(dataUrl.indexOf(',')+1);
-    analyzeProfileImage(base64,mediaType,status);
-  };
-  r.readAsDataURL(f);
+// ── PERFIL DESDE IMAGEN (vía Claude en el chat) ──
+function copyImgPrompt(){
+  var prompt='Esta imagen muestra el perfil de altimetría (o un gráfico de estrategia de carrera con forma de perfil) de una carrera de running o trail running. Analiza la curva y responde ÚNICAMENTE con un JSON válido, sin texto adicional y sin bloques de markdown, con este formato exacto:\n{"points":[[km,altitud_m],...]}\nIncluye entre 25 y 50 puntos que reconstruyan fielmente la forma de la curva de principio a fin, empezando en km 0. Si el gráfico no indica altitud en metros, estima una curva razonable y avísame de que es una aproximación.';
+  navigator.clipboard.writeText(prompt).then(function(){
+    var s=document.getElementById('img-prompt-status');
+    s.textContent='¡Copiado! Pégalo en el chat junto con tu imagen.';
+    setTimeout(function(){s.textContent='';},4000);
+  });
 }
 
-function analyzeProfileImage(base64,mediaType,status){
-  var prompt='Esta imagen muestra el perfil de altimetría de una carrera de running o trail running. Analiza la curva y responde ÚNICAMENTE con un JSON válido, sin texto adicional y sin bloques de markdown, con este formato exacto:\n{"points":[[km,altitud_m],...]}\nIncluye entre 25 y 50 puntos que reconstruyan fielmente la forma de la curva de principio a fin, empezando en km 0. Usa la distancia total y el rango de altitud que se vean en los ejes de la imagen, si son legibles.';
-  fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      model:'claude-sonnet-4-6',
-      max_tokens:1000,
-      messages:[{role:'user',content:[
-        {type:'image',source:{type:'base64',media_type:mediaType,data:base64}},
-        {type:'text',text:prompt}
-      ]}]
-    })
-  }).then(function(res){return res.json();}).then(function(data){
-    var textBlocks=(data.content||[]).filter(function(b){return b.type==='text';}).map(function(b){return b.text;});
-    var raw=textBlocks.join('').replace(/```json|```/g,'').trim();
-    var parsed=JSON.parse(raw);
-    if(!parsed.points||!parsed.points.length)throw new Error('no se detectaron puntos');
+function applyImageJSON(){
+  if(!editPts.length){alert('Carga primero un GPX o KML.');return;}
+  var status=document.getElementById('img-status');
+  var raw=document.getElementById('img-json').value.trim();
+  if(!raw){status.style.color='#c07070';status.textContent='Pega primero el JSON.';return;}
+  try{
+    var parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    if(!parsed.points||!parsed.points.length)throw new Error('sin puntos');
     applyImageProfile(parsed.points);
     status.style.color='#6b7f6b';status.textContent='✓ Perfil actualizado desde imagen';
     document.getElementById('btn-restore-ele').style.display='inline-block';
     setTimeout(function(){status.textContent='';},4000);
-  }).catch(function(err){
-    status.style.color='#c07070';status.textContent='Error al interpretar la imagen: '+err.message;
-  });
+  }catch(err){
+    status.style.color='#c07070';status.textContent='JSON no válido: '+err.message;
+  }
 }
+
 
 function applyImageProfile(points){
   points=points.slice().sort(function(a,b){return a[0]-b[0];});
@@ -912,7 +915,7 @@ function switchTab(id,el){
 }
 
 // ── EXPORT ──
-function buildWidget(){
+function generateWidgetHTML(){
   var name=document.getElementById('cfg-name').value||'Ruta';
   var col=document.getElementById('cfg-color').value;
   var w=document.getElementById('cfg-weight').value;
@@ -1017,8 +1020,69 @@ profScript+'\n'+
 '  <\/script>\n'+
 '</div>';
 
+  return html;
+}
+
+function buildWidget(){
+  var html=generateWidgetHTML();
   document.getElementById('code-out').textContent=html;
   document.getElementById('preview-out').innerHTML=html;
+}
+
+// ── EXPORTAR COMO PÁGINA INDEPENDIENTE + IFRAME (evita el bug de wpautop) ──
+function slugify(s){
+  return (s||'ruta').toString().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/(^-+|-+$)/g,'') || 'ruta';
+}
+
+function buildStandalonePage(){
+  var name=document.getElementById('cfg-name').value||'Ruta';
+  var snippet=generateWidgetHTML();
+  return '<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n'+
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'+
+    '<title>'+escH(name)+'</title>\n'+
+    '<style>html,body{margin:0;padding:0;background:#fff;}</style>\n'+
+    '</head>\n<body>\n'+snippet+'\n'+
+    '<script>\n'+
+    'function bmSendHeight(){var h=document.body.scrollHeight;if(window.parent)window.parent.postMessage({bmHeight:h},"*");}\n'+
+    'window.addEventListener("load",function(){bmSendHeight();setTimeout(bmSendHeight,400);setTimeout(bmSendHeight,1200);setTimeout(bmSendHeight,2500);});\n'+
+    'window.addEventListener("resize",bmSendHeight);\n'+
+    '<\/script>\n</body>\n</html>';
+}
+
+function downloadStandalonePage(){
+  var slugInp=document.getElementById('cfg-slug');
+  var slug=slugify(slugInp.value||document.getElementById('cfg-name').value);
+  slugInp.value=slug;
+  var html=buildStandalonePage();
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));
+  a.download=slug+'.html';
+  a.click();
+  var s=document.getElementById('iframe-status');
+  s.style.color='#6b7f6b';
+  s.textContent='Descargado '+slug+'.html — súbelo a tu repo visor-gpx, carpeta /mapas/';
+  setTimeout(function(){s.textContent='';},5000);
+}
+
+function copyIframeEmbed(){
+  var slugInp=document.getElementById('cfg-slug');
+  var slug=slugify(slugInp.value||document.getElementById('cfg-name').value);
+  slugInp.value=slug;
+  var base=document.getElementById('cfg-base-url').value.trim().replace(/\/+$/,'')+'/';
+  var url=base+slug+'.html';
+  var h=parseInt(document.getElementById('cfg-h').value)+260;
+  var uid='bmif'+Date.now().toString(36);
+  var code='<iframe src="'+url+'" id="'+uid+'" style="width:100%;border:0;display:block;" height="'+h+'" loading="lazy" title="'+escH(document.getElementById('cfg-name').value||'Mapa')+'"></iframe>\n'+
+    '<script>window.addEventListener("message",function(e){if(e.data&&e.data.bmHeight){var f=document.getElementById("'+uid+'");if(f)f.style.height=e.data.bmHeight+"px";}});<\/script>';
+  document.getElementById('iframe-code-out').textContent=code;
+  navigator.clipboard.writeText(code).then(function(){
+    var s=document.getElementById('iframe-status');
+    s.style.color='#6b7f6b';
+    s.textContent='¡Código iframe copiado!';
+    setTimeout(function(){s.textContent='';},3000);
+  });
 }
 
 function copyWidget(){
