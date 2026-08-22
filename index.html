@@ -1006,7 +1006,7 @@ profHtml+'\n'+
 '  (function(){\n'+
 '    var pp='+ptsJ+';\n'+
 '    var m=L.map("'+uid+'");\n'+
-'    L.tileLayer("'+tileUrl+'",{attribution:"'+tileAtt+'",maxZoom:19}).addTo(m);\n'+
+'    L.tileLayer('+JSON.stringify(tileUrl)+',{attribution:'+JSON.stringify(tileAtt)+',maxZoom:19}).addTo(m);\n'+
 trackScript+'\n'+
 boundsScript+'\n'+
 abScript+'\n'+
