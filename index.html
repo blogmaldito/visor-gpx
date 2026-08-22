@@ -1,14 +1,1111 @@
-<!-- Mapa Blogmaldito: cursa-de-la-merce-2025 -->
-<div style="font-family:sans-serif;max-width:100%;margin:1.5rem 0;border:1px solid #e0ddd6;overflow:hidden;">
-  <div style="background:#141414;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #6b7f6b;">
-    <span style="font-size:13px;font-weight:500;color:#f0ede8;font-family:sans-serif;">cursa-de-la-merce-2025</span>
-    <span style="font-size:9px;color:#6b7f6b;letter-spacing:1.5px;text-transform:uppercase;font-family:sans-serif;">BLOGMALDITO</span>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visor GPX/KML — Blogmaldito v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Fraunces:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Figtree',system-ui,sans-serif;font-size:13px;color:#f0ede8;background:#141414;min-height:100vh;}
+
+.app{max-width:900px;margin:0 auto;padding:16px;}
+
+/* HEADER */
+.hd{display:flex;align-items:center;justify-content:space-between;padding:0 0 14px;border-bottom:0.5px solid #2a2a2a;margin-bottom:16px;}
+.hd-logo{font-family:'Fraunces',serif;font-size:18px;font-weight:400;color:#f0ede8;}
+.hd-sub{font-size:8px;color:#6b7f6b;letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+.hd-badge{font-size:10px;color:#555;letter-spacing:0.5px;}
+
+/* WARNING */
+.warn-banner{display:none;background:#241c10;border:1px solid #6b4a1a;color:#e0a050;padding:10px 14px;font-size:11px;margin-bottom:14px;line-height:1.5;}
+
+/* UPLOAD */
+.upload-zone{border:1px dashed #2a2a2a;padding:24px;text-align:center;cursor:pointer;transition:all 0.15s;background:#1a1a1a;}
+.upload-zone:hover{border-color:#6b7f6b;background:#1e221e;}
+.upload-zone input{display:none;}
+.upload-title{font-size:14px;font-weight:500;color:#f0ede8;margin-bottom:4px;}
+.upload-sub{font-size:11px;color:#555;}
+.upload-or{font-size:11px;color:#333;margin:8px 0;}
+
+/* SECTION */
+.sec{margin-bottom:14px;}
+.sec-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:#444;margin-bottom:8px;}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#2a2a2a;border:1px solid #2a2a2a;margin-bottom:14px;}
+.stat{background:#1a1a1a;padding:10px 12px;}
+.stat-val{font-size:22px;font-weight:600;color:#f0ede8;line-height:1;}
+.stat-unit{font-size:9px;color:#6b7f6b;font-weight:500;letter-spacing:0.5px;margin-top:2px;}
+.stat-label{font-size:10px;color:#444;margin-top:3px;}
+.stat-input{width:100%;background:transparent;border:none;border-bottom:1px solid #2a2a2a;color:#f0ede8;font-family:'Figtree',sans-serif;font-size:22px;font-weight:600;outline:none;padding:0;}
+.stat-input:focus{border-color:#6b7f6b;}
+.dist-hint{font-size:9px;color:#e09a30;cursor:pointer;text-decoration:underline;}
+
+/* MAP */
+#map{height:420px;width:100%;border:1px solid #2a2a2a;margin-bottom:14px;background:#0f0f0f;}
+
+/* CHART */
+.chart-wrap{background:#1a1a1a;border:1px solid #2a2a2a;padding:12px 14px;margin-bottom:14px;}
+.chart-controls{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.chart-canvas-wrap{position:relative;height:140px;}
+.ctrl-label{font-size:10px;color:#555;}
+input[type=range]{width:100px;accent-color:#6b7f6b;cursor:pointer;}
+.ctrl-val{font-size:10px;color:#888;min-width:60px;}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid #2a2a2a;margin-bottom:14px;gap:0;}
+.tab{padding:8px 16px;font-size:11px;font-weight:500;color:#444;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color 0.1s;}
+.tab:hover{color:#888;}
+.tab.on{color:#f0ede8;border-color:#6b7f6b;}
+.panel{display:none;}
+.panel.on{display:block;}
+
+/* CONTROLS */
+.ctrl-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+.ctrl-row label{font-size:11px;color:#555;min-width:130px;}
+input[type=text],input[type=number],select{
+  font-family:'Figtree',sans-serif;font-size:12px;
+  padding:6px 10px;border:1px solid #2a2a2a;
+  background:#1a1a1a;color:#f0ede8;outline:none;
+}
+input[type=text]:focus,input[type=number]:focus,select:focus{border-color:#6b7f6b;}
+select option{background:#1a1a1a;}
+input[type=color]{width:32px;height:28px;border:1px solid #2a2a2a;padding:2px;cursor:pointer;background:#1a1a1a;}
+input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#6b7f6b;}
+
+/* TOGGLE */
+.toggle-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.toggle-label{font-size:12px;color:#888;cursor:pointer;}
+.toggle-wrap{position:relative;width:36px;height:20px;flex-shrink:0;}
+.toggle-wrap input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;background:#2a2a2a;cursor:pointer;transition:0.2s;}
+.toggle-slider::before{position:absolute;content:"";height:14px;width:14px;left:3px;top:3px;background:#555;transition:0.2s;}
+.toggle-wrap input:checked + .toggle-slider{background:#6b7f6b;}
+.toggle-wrap input:checked + .toggle-slider::before{transform:translateX(16px);background:#fff;}
+
+/* BUTTONS */
+.btn{font-family:'Figtree',sans-serif;font-size:12px;padding:7px 14px;border:1px solid #2a2a2a;background:#1a1a1a;color:#888;cursor:pointer;transition:all 0.1s;}
+.btn:hover{background:#222;color:#f0ede8;border-color:#3a3a3a;}
+.btn-accent{border-color:#6b7f6b;color:#8fa88f;background:#1a221a;}
+.btn-accent:hover{background:#1e2a1e;color:#b0c8b0;}
+.btn-primary{background:#f0ede8;color:#141414;border-color:#f0ede8;font-weight:500;}
+.btn-primary:hover{background:#ddd;}
+.btn-danger{border-color:#5a2a2a;color:#c07070;background:#1a1010;}
+.btn-danger:hover{background:#221414;}
+.action-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center;}
+
+/* WAYPOINTS */
+.wp-row{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #1e1e1e;}
+.wp-row:last-child{border-bottom:none;}
+.wp-km{font-size:10px;font-weight:600;color:#6b7f6b;min-width:50px;}
+
+/* EDIT HINT */
+.hint{background:#1a1a1a;border-left:2px solid #6b7f6b;padding:8px 12px;font-size:11px;color:#666;margin-bottom:10px;line-height:1.5;}
+.hint.warn{border-color:#e09a30;color:#a07030;}
+
+/* CODE */
+.code-box{background:#0f0f0f;border:1px solid #1e1e1e;padding:12px 14px;font-family:monospace;font-size:11px;color:#8fa88f;overflow-x:auto;max-height:160px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;margin-top:8px;}
+
+/* STATUS */
+#status{font-size:11px;color:#6b7f6b;margin-left:4px;}
+#copy-status{font-size:11px;color:#6b7f6b;}
+#img-status{font-size:11px;}
+
+.divider{height:1px;background:#1e1e1e;margin:12px 0;}
+
+.map-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.map-btns span{font-size:10px;color:#444;align-self:center;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<div class="hd">
+  <div>
+    <div class="hd-logo">BLOGMALDITO</div>
+    <div class="hd-sub">running · trail</div>
   </div>
-<div style="display:flex;gap:20px;padding:8px 14px;background:#fafaf8;border-bottom:1px solid #e0ddd6;flex-wrap:wrap;"><span style="font-size:12px;color:#555;font-family:sans-serif;"><strong style="color:#1a1a1a;">10.2</strong> km</span><span style="font-size:12px;color:#555;font-family:sans-serif;"><strong style="color:#1a1a1a;">+212</strong> m D+</span><span style="font-size:12px;color:#555;font-family:sans-serif;"><strong style="color:#1a1a1a;">-239</strong> m D-</span></div>
-  <div id="bmmt4s8nz6" style="height:480px;"></div>
-<div style="padding:10px 14px;background:#fff;border-top:1px solid #e0ddd6;"><canvas id="bmmt4s8nz6-chart" style="height:90px;width:100%;display:block;"></canvas></div>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-  <script>(function(){var pp=[[41.39329,2.16639,49],[41.39284,2.16576,52],[41.39242,2.16522,51],[41.39218,2.16488,46],[41.39183,2.16444,44],[41.39132,2.16373,45],[41.39091,2.16321,50],[41.39049,2.16264,51],[41.39015,2.16219,51],[41.38983,2.16175,48],[41.38954,2.16134,45],[41.38919,2.1609,41],[41.3889,2.16052,43],[41.38854,2.16003,48],[41.38809,2.15944,47],[41.38781,2.15908,46],[41.38749,2.15863,43],[41.38719,2.15828,40],[41.38671,2.1576,45],[41.38655,2.1574,47],[41.38649,2.15732,48],[41.38661,2.15716,48],[41.38678,2.15694,49],[41.38695,2.15671,48],[41.38714,2.15648,45],[41.38725,2.15633,44],[41.38734,2.15621,45],[41.38767,2.15666,43],[41.38799,2.15708,41],[41.38823,2.15739,47],[41.38855,2.15782,50],[41.38879,2.15814,48],[41.38905,2.15849,47],[41.38929,2.15883,49],[41.38961,2.15925,49],[41.38989,2.1596,50],[41.39009,2.15988,52],[41.39027,2.16015,52],[41.39049,2.16044,50],[41.3907,2.16073,48],[41.39093,2.161,48],[41.39112,2.16124,49],[41.39141,2.16161,50],[41.39164,2.16191,49],[41.39185,2.1622,52],[41.39205,2.16246,54],[41.39228,2.16279,53],[41.39246,2.16299,52],[41.3926,2.1632,52],[41.39285,2.16351,49],[41.39303,2.16377,49],[41.39325,2.16405,49],[41.39346,2.16433,49],[41.39394,2.16499,49],[41.39425,2.1654,53],[41.39459,2.16586,52],[41.39492,2.1663,52],[41.39526,2.16675,51],[41.39556,2.16716,47],[41.396,2.16772,49],[41.39637,2.16819,48],[41.39679,2.16877,46],[41.39717,2.16927,45],[41.3976,2.16985,44],[41.39789,2.17025,45],[41.39814,2.17056,46],[41.39836,2.17087,43],[41.39811,2.17122,39],[41.39784,2.17155,41],[41.39764,2.17182,41],[41.39729,2.17229,37],[41.39688,2.17284,40],[41.39641,2.17346,34],[41.39611,2.17385,37],[41.39569,2.17439,34],[41.3955,2.17468,33],[41.39538,2.17481,32],[41.39519,2.17486,29],[41.39492,2.17489,28],[41.3947,2.17496,28],[41.39454,2.17508,30],[41.39443,2.17531,32],[41.39442,2.17557,32],[41.39437,2.17595,30],[41.39433,2.17615,31],[41.39426,2.17633,31],[41.39405,2.17662,29],[41.39362,2.17717,30],[41.39331,2.17754,32],[41.39301,2.17796,32],[41.39263,2.17844,31],[41.39233,2.17885,30],[41.39195,2.17936,28],[41.39166,2.17971,26],[41.39148,2.17994,24],[41.39133,2.17996,25],[41.39109,2.17995,24],[41.39098,2.18,23],[41.39078,2.18023,20],[41.39057,2.18049,17],[41.39019,2.18099,18],[41.38991,2.18137,16],[41.38965,2.18172,14],[41.38938,2.18207,16],[41.38902,2.18254,17],[41.38878,2.18285,14],[41.38863,2.18305,12],[41.3884,2.18275,16],[41.38826,2.18256,19],[41.38816,2.18247,19],[41.38793,2.18273,17],[41.38758,2.18319,15],[41.3873,2.18355,15],[41.38707,2.18387,14],[41.38665,2.18443,17],[41.38632,2.18485,16],[41.38605,2.18523,16],[41.38583,2.18552,16],[41.38571,2.1857,13],[41.38558,2.18585,10],[41.38531,2.18564,12],[41.38499,2.18535,19],[41.3848,2.18518,21],[41.38459,2.18501,23],[41.38432,2.18479,23],[41.38399,2.1845,22],[41.3838,2.18433,21],[41.38359,2.18415,19],[41.38343,2.18402,18],[41.38333,2.18394,17],[41.38329,2.18378,17],[41.38312,2.1836,15],[41.38294,2.18342,13],[41.38275,2.18329,11],[41.38265,2.18322,11],[41.38257,2.18314,10],[41.38228,2.18292,15],[41.38203,2.18273,18],[41.38181,2.18252,17],[41.38161,2.18236,14],[41.38147,2.18224,11],[41.38135,2.18211,11],[41.38111,2.18192,11],[41.38101,2.18181,12],[41.38084,2.18167,14],[41.38071,2.18156,14],[41.38049,2.18138,15],[41.38032,2.18124,14],[41.38017,2.18112,12],[41.38006,2.18102,10],[41.37993,2.18092,9],[41.37965,2.1807,7],[41.37948,2.18056,7],[41.37931,2.18042,7],[41.3791,2.18024,8],[41.37896,2.18014,11],[41.37881,2.18001,13],[41.37854,2.1798,13],[41.37833,2.17964,15],[41.37812,2.17947,15],[41.37793,2.17931,15],[41.37772,2.17914,15],[41.37754,2.17901,15],[41.37736,2.17885,14],[41.37724,2.17874,13],[41.3771,2.17864,11],[41.37686,2.17844,8],[41.37668,2.1783,7],[41.37643,2.1781,7],[41.37624,2.17795,7],[41.37619,2.17788,7],[41.37612,2.17767,7],[41.37602,2.17751,7],[41.37587,2.17737,6],[41.37575,2.17737,6],[41.37559,2.17737,6],[41.37551,2.17741,7],[41.37515,2.17711,10],[41.37488,2.17697,12],[41.37472,2.17677,10],[41.37458,2.17665,9],[41.37448,2.17648,8],[41.37439,2.17623,7],[41.37439,2.17591,6],[41.37443,2.1757,7],[41.3746,2.17547,11],[41.37469,2.17525,13],[41.37469,2.17505,12],[41.37472,2.17471,12],[41.37474,2.1743,13],[41.37477,2.17381,12],[41.37481,2.17335,13],[41.37485,2.17266,14],[41.37487,2.17217,15],[41.37491,2.1717,15],[41.37493,2.1712,14],[41.37497,2.17074,15],[41.37499,2.17012,15],[41.37502,2.16971,17],[41.37502,2.16904,25],[41.37503,2.16851,32],[41.37504,2.16791,29],[41.37502,2.1672,25],[41.37503,2.16636,26],[41.37503,2.16576,22],[41.37503,2.16527,22],[41.37504,2.16479,27],[41.37504,2.16402,30],[41.37504,2.16319,30],[41.37504,2.16249,34],[41.37504,2.16195,33],[41.37504,2.16119,29],[41.37504,2.16035,37],[41.37504,2.15959,38],[41.37504,2.15911,35],[41.37504,2.15872,32],[41.37505,2.15809,35],[41.37504,2.15726,35],[41.37505,2.15661,33],[41.37525,2.1564,36],[41.37554,2.15604,38],[41.37583,2.15569,38],[41.376,2.15549,37],[41.37613,2.15537,38],[41.37658,2.15595,35],[41.37704,2.15655,36],[41.37745,2.15715,32],[41.37788,2.15772,32],[41.37846,2.15847,33],[41.37901,2.15923,36],[41.37952,2.1599,36],[41.38013,2.1607,34],[41.38059,2.16133,34],[41.38124,2.16215,34],[41.38172,2.16281,36],[41.38205,2.16318,34],[41.38231,2.16355,32],[41.38287,2.16368,29],[41.38376,2.16378,32],[41.38443,2.16387,31],[41.38497,2.16395,35],[41.3854,2.16407,30],[41.38575,2.16447,30],[41.38595,2.16474,32],[41.38586,2.16533,34],[41.38579,2.16607,36],[41.38574,2.16688,40],[41.38572,2.16729,34],[41.38568,2.16765,30],[41.38566,2.16801,29],[41.38558,2.16901,28],[41.38553,2.16946,30],[41.3856,2.16981,28],[41.38577,2.1701,28],[41.38619,2.16977,29],[41.38643,2.16956,23]];var m=L.map("bmmt4s8nz6");L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{attribution:"&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> &copy; <a href=\"https://carto.com/\">CARTO</a>",maxZoom:19}).addTo(m);var pl=L.polyline(pp.map(function(p){return[p[0],p[1]];}),{color:"#6b7f6b",weight:3,opacity:0.9}).addTo(m);var bnds=pl.getBounds();m.fitBounds(bnds,{padding:[20,20]});var iA=L.divIcon({html:'<div style="width:16px;height:16px;border-radius:50%;background:#6b7f6b;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.5);"></div>',className:"",iconSize:[22,22],iconAnchor:[11,11]});var iB=L.divIcon({html:'<div style="width:16px;height:16px;border-radius:50%;background-image:repeating-conic-gradient(#1a1a1a 0% 25%,#fff 0% 50%);background-size:8px 8px;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.5);"></div>',className:"",iconSize:[22,22],iconAnchor:[11,11]});L.marker([pp[0][0],pp[0][1]],{icon:iA,zIndexOffset:1000}).addTo(m);L.marker([pp[pp.length-1][0],pp[pp.length-1][1]],{icon:iB,zIndexOffset:1000}).addTo(m);var wps=[];wps.forEach(function(wp){var ic=L.divIcon({html:'<div style="background:#e09a30;color:#fff;font-size:9px;font-weight:600;padding:2px 7px;font-family:sans-serif;">'+wp.name+'</div>',className:""});L.marker([wp.lat,wp.lon],{icon:ic}).addTo(m);});var pd=[[0,49],[0.07,48],[0.14,48],[0.18,49],[0.23,49],[0.31,49],[0.37,48],[0.44,47],[0.49,46],[0.55,47],[0.59,47],[0.65,47],[0.69,46],[0.75,45],[0.82,44],[0.86,45],[0.91,45],[0.96,46],[1.04,46],[1.06,46],[1.07,46],[1.09,46],[1.11,47],[1.14,46],[1.17,46],[1.19,45],[1.2,46],[1.25,46],[1.3,45],[1.34,46],[1.39,46],[1.43,47],[1.47,48],[1.51,49],[1.56,49],[1.6,49],[1.63,49],[1.66,49],[1.7,50],[1.73,50],[1.77,50],[1.8,50],[1.84,50],[1.88,50],[1.91,51],[1.94,51],[1.98,51],[2,51],[2.03,51],[2.07,51],[2.1,50],[2.13,50],[2.16,50],[2.24,50],[2.29,50],[2.34,50],[2.39,50],[2.45,50],[2.49,49],[2.56,48],[2.62,47],[2.69,47],[2.74,46],[2.81,45],[2.86,44],[2.9,43],[2.93,42],[2.97,42],[3.01,41],[3.05,40],[3.1,38],[3.17,37],[3.24,37],[3.29,35],[3.35,34],[3.38,33],[3.4,32],[3.42,32],[3.45,31],[3.48,31],[3.5,30],[3.52,30],[3.54,30],[3.57,30],[3.59,31],[3.61,31],[3.64,31],[3.71,31],[3.75,31],[3.8,30],[3.86,29],[3.91,29],[3.97,28],[4.01,27],[4.04,26],[4.06,24],[4.08,23],[4.1,21],[4.13,20],[4.16,19],[4.22,18],[4.26,17],[4.3,16],[4.34,15],[4.4,16],[4.44,16],[4.46,16],[4.5,16],[4.52,16],[4.53,16],[4.57,16],[4.62,16],[4.66,16],[4.7,16],[4.77,15],[4.82,15],[4.86,14],[4.9,15],[4.92,16],[4.94,16],[4.97,17],[5.01,18],[5.04,18],[5.07,19],[5.1,20],[5.14,20],[5.17,20],[5.2,19],[5.22,18],[5.23,17],[5.25,16],[5.27,15],[5.29,14],[5.32,14],[5.33,14],[5.34,14],[5.38,13],[5.41,13],[5.44,13],[5.47,13],[5.49,14],[5.5,14],[5.53,13],[5.55,13],[5.57,13],[5.59,13],[5.62,12],[5.64,12],[5.66,11],[5.67,11],[5.69,10],[5.73,10],[5.75,10],[5.77,10],[5.8,10],[5.82,11],[5.84,12],[5.87,12],[5.9,13],[5.92,14],[5.95,14],[5.98,14],[6,14],[6.02,13],[6.04,12],[6.06,11],[6.09,10],[6.11,9],[6.14,8],[6.17,8],[6.18,7],[6.2,7],[6.21,7],[6.23,7],[6.25,8],[6.26,8],[6.27,8],[6.32,8],[6.35,8],[6.38,8],[6.4,8],[6.41,9],[6.44,9],[6.46,9],[6.48,9],[6.51,10],[6.53,10],[6.55,11],[6.57,12],[6.61,13],[6.65,13],[6.69,13],[6.75,14],[6.79,14],[6.83,14],[6.87,16],[6.91,18],[6.96,20],[6.99,21],[7.05,22],[7.09,23],[7.14,24],[7.2,25],[7.27,26],[7.32,27],[7.36,27],[7.4,28],[7.47,28],[7.54,29],[7.6,31],[7.64,33],[7.7,33],[7.77,34],[7.84,34],[7.88,34],[7.91,35],[7.96,36],[8.03,36],[8.09,36],[8.11,36],[8.16,36],[8.2,36],[8.23,36],[8.25,36],[8.31,35],[8.39,35],[8.45,35],[8.52,35],[8.61,34],[8.7,34],[8.78,34],[8.87,34],[8.95,34],[9.05,34],[9.12,33],[9.17,33],[9.21,33],[9.28,33],[9.38,32],[9.45,32],[9.51,32],[9.56,32],[9.61,33],[9.64,34],[9.69,33],[9.76,33],[9.82,33],[9.86,33],[9.89,32],[9.92,31],[10,31],[10.04,29],[10.07,28],[10.1,28],[10.16,28],[10.19,27]];var cols=["#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b","#6b7f6b"];var totalKm=pd.length?pd[pd.length-1][0]:0;var kmStep=totalKm<=10?1:(totalKm<=25?2.5:5);var ctx=document.getElementById("bmmt4s8nz6-chart").getContext("2d");new Chart(ctx,{type:"line",data:{datasets:[{data:pd.map(function(p){return{x:p[0],y:p[1]};}),fill:true,backgroundColor:"rgba(107,127,107,0.12)",borderColor:"#6b7f6b",borderWidth:1.5,pointRadius:0,tension:0.35,segment:{borderColor:function(c){return cols[c.p0DataIndex]||"#6b7f6b";}}}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.parsed.y+" m";},title:function(c){return c[0].parsed.x.toFixed(1)+" km";}}}},scales:{x:{type:"linear",min:0,max:totalKm,ticks:{stepSize:kmStep,font:{size:9},color:"#777",callback:function(v){return(Math.round(v*10)/10)+" km";}},grid:{color:"rgba(0,0,0,0.04)"}},y:{ticks:{font:{size:9},color:"#777",callback:function(v){return v+"m";}},grid:{color:"rgba(0,0,0,0.05)"}}}}});setTimeout(function(){m.invalidateSize();m.fitBounds(bnds,{padding:[20,20]});},300);})();</script>
+  <div class="hd-badge">Visor GPX / KML · v3</div>
 </div>
+
+<!-- FILE:// WARNING -->
+<div class="warn-banner" id="file-warning">
+  ⚠ Estás abriendo este archivo directamente desde tu ordenador (file://). Algunos servidores de mapas (sobre todo OpenStreetMap) rechazan las peticiones de tiles cuando no hay un origen web real, así que el mapa puede verse en blanco. Sube este HTML a GitHub Pages (o cualquier hosting) para verlo con el mapa funcionando al 100%. El resto de funciones (carga de GPX, perfil, edición, exportar) funcionan igual en local.
+</div>
+
+<!-- UPLOAD -->
+<div class="sec" id="upload-sec">
+  <div class="upload-zone" onclick="document.getElementById('file-inp').click()" id="drop-zone">
+    <input type="file" id="file-inp" accept=".gpx,.kml,.GPX,.KML" onchange="loadFile(this)">
+    <div class="upload-title">Arrastra aquí tu GPX o KML</div>
+    <div class="upload-or">— o —</div>
+    <button class="btn btn-accent" onclick="event.stopPropagation();document.getElementById('file-inp').click()">Seleccionar archivo</button>
+    <div class="upload-sub" style="margin-top:10px;">Wikiloc · Garmin · Strava · komoot · Tracks muy largos se optimizan automáticamente</div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div id="stats-sec" style="display:none;">
+  <div class="sec-label">Estadísticas del recorrido</div>
+  <div class="stats-row" id="stats-grid">
+    <div class="stat">
+      <input class="stat-input" id="st-dist" type="text" value="—" title="Editable — introduce la distancia homologada si difiere del GPS" onchange="onDistInput()">
+      <div class="stat-unit">KM</div>
+      <div class="stat-label">Distancia <span class="dist-hint" id="dist-hint" style="display:none;" onclick="resetDist()"></span></div>
+    </div>
+    <div class="stat">
+      <input class="stat-input" id="st-up" type="text" value="—" title="Editable">
+      <div class="stat-unit">M D+</div>
+      <div class="stat-label">Desnivel +</div>
+    </div>
+    <div class="stat">
+      <input class="stat-input" id="st-down" type="text" value="—" title="Editable">
+      <div class="stat-unit">M D-</div>
+      <div class="stat-label">Desnivel −</div>
+    </div>
+    <div class="stat">
+      <input class="stat-input" id="st-pts" type="text" value="—" readonly style="cursor:default;">
+      <div class="stat-unit">PTS</div>
+      <div class="stat-label">Puntos GPS</div>
+    </div>
+  </div>
+  <div style="font-size:10px;color:#444;margin-bottom:14px;margin-top:-10px;">Distancia y desnivel son editables. Si cambias la distancia (p. ej. a la homologada), el eje del perfil y los km de los puntos de interés se reescalan automáticamente. Clic en "usar GPS" para revertir.</div>
+</div>
+
+<!-- MAIN -->
+<div id="main-sec" style="display:none;">
+
+  <div class="tabs">
+    <div class="tab on" onclick="switchTab('mapa',this)">Mapa</div>
+    <div class="tab" onclick="switchTab('perfil',this)">Perfil</div>
+    <div class="tab" onclick="switchTab('config',this)">Opciones</div>
+    <div class="tab" onclick="switchTab('pois',this)">Puntos</div>
+    <div class="tab" onclick="switchTab('export',this)">Exportar</div>
+  </div>
+
+  <!-- MAPA -->
+  <div class="panel on" id="panel-mapa">
+    <div class="hint" id="edit-hint">
+      Modo visualización — activa la edición para mover puntos del track arrastrándolos en el mapa.
+    </div>
+    <div class="action-row">
+      <button class="btn btn-accent" id="btn-edit" onclick="toggleEdit()">✏ Editar track</button>
+      <button class="btn" onclick="resetTrack()">↺ Restaurar original</button>
+      <button class="btn" onclick="document.getElementById('file-inp').click()">⬆ Cargar otro archivo</button>
+      <span id="status"></span>
+    </div>
+    <div id="map"></div>
+    <div class="map-btns">
+      <span>Mapa base:</span>
+      <button class="btn" onclick="setTile('carto')">Gris</button>
+      <button class="btn" onclick="setTile('osm')">OpenStreetMap</button>
+      <button class="btn" onclick="setTile('topo')">Topográfico</button>
+      <button class="btn" onclick="setTile('satellite')">Satélite</button>
+    </div>
+  </div>
+
+  <!-- PERFIL -->
+  <div class="panel" id="panel-perfil">
+    <div class="chart-wrap">
+      <div class="chart-controls">
+        <span class="ctrl-label">Suavizado:</span>
+        <input type="range" id="smooth" min="0" max="25" value="4" oninput="renderChart();drawTrack();">
+        <span class="ctrl-val" id="smooth-v">4</span>
+        <span class="ctrl-label" style="margin-left:8px;">Escala Y:</span>
+        <input type="range" id="yscale" min="0" max="3" step="1" value="0" oninput="renderChart()">
+        <span class="ctrl-val" id="yscale-v">Auto</span>
+      </div>
+
+      <div class="chart-controls" style="border-top:1px solid #2a2a2a;padding-top:10px;">
+        <span class="ctrl-label">Color del perfil:</span>
+        <select id="color-mode" onchange="onColorModeChange()">
+          <option value="solid">Uniforme</option>
+          <option value="gradient">Degradado por pendiente</option>
+        </select>
+        <span id="gradient-controls" style="display:none;align-items:center;gap:6px;">
+          <input type="color" id="grad-c0" value="#3aa655" oninput="renderChart();drawTrack();" title="Llano">
+          <input type="color" id="grad-c1" value="#e0c030" oninput="renderChart();drawTrack();" title="Moderado">
+          <input type="color" id="grad-c2" value="#c0392b" oninput="renderChart();drawTrack();" title="Muy exigente">
+          <span class="ctrl-label">amarillo ≥</span>
+          <input type="number" id="grad-t1" value="3" min="0" max="30" step="0.5" style="width:46px;padding:4px 6px;" oninput="renderChart();drawTrack();">%
+          <span class="ctrl-label">rojo ≥</span>
+          <input type="number" id="grad-t2" value="8" min="0" max="40" step="0.5" style="width:46px;padding:4px 6px;" oninput="renderChart();drawTrack();">%
+        </span>
+      </div>
+
+      <div class="chart-controls">
+        <label class="toggle-wrap"><input type="checkbox" id="brush-active" onchange="onBrushToggle()"><span class="toggle-slider"></span></label>
+        <span class="toggle-label" onclick="document.getElementById('brush-active').click()">Pincel manual</span>
+        <input type="color" id="brush-color" value="#3B82C4" title="Color del pincel">
+        <button class="btn" onclick="clearPaint()">🧹 Limpiar pintura</button>
+        <span class="ctrl-label" id="brush-hint" style="display:none;color:#e09a30;">arrastra sobre el perfil o haz clic en tramos del mapa para pintar</span>
+      </div>
+
+      <div class="chart-canvas-wrap">
+        <canvas id="elev-chart"></canvas>
+      </div>
+    </div>
+    <div style="font-size:10px;color:#444;margin-top:-6px;margin-bottom:14px;">Pasa el ratón sobre el perfil para ver altitud y km. El degradado y el pincel se aplican también al track en el mapa, sincronizados.</div>
+
+    <div class="chart-wrap">
+      <div class="sec-label" style="margin-bottom:6px;">Sustituir perfil por imagen (vía Claude en el chat)</div>
+      <div style="font-size:10px;color:#666;margin-bottom:8px;line-height:1.5;">Esta herramienta, una vez alojada fuera de Claude.ai (GitHub Pages, WordPress...), no puede llamar a la API de Claude por sí sola. El flujo es: 1) sube tu imagen del perfil a Claude en un chat normal, 2) pídele que la interprete y te devuelva el JSON de puntos, 3) pega ese JSON aquí abajo.</div>
+      <div class="action-row">
+        <button class="btn" onclick="copyImgPrompt()">📋 Copiar instrucciones para Claude</button>
+        <span id="img-prompt-status" style="font-size:11px;color:#6b7f6b;"></span>
+      </div>
+      <textarea id="img-json" placeholder='Pega aquí el JSON, p.ej: {"points":[[0,45],[1,60],...]}' style="width:100%;min-height:70px;font-family:monospace;font-size:11px;background:#1a1a1a;color:#f0ede8;border:1px solid #2a2a2a;padding:8px;margin-bottom:8px;resize:vertical;"></textarea>
+      <div class="action-row">
+        <button class="btn btn-accent" onclick="applyImageJSON()">✓ Aplicar perfil desde JSON</button>
+        <button class="btn" id="btn-restore-ele" onclick="restoreGPSProfile()" style="display:none;">↺ Restaurar altitud GPS</button>
+        <span id="img-status"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIG -->
+  <div class="panel" id="panel-config">
+    <div class="sec-label">Apariencia</div>
+    <div class="ctrl-row"><label>Nombre de la ruta</label><input type="text" id="cfg-name" value="" style="width:260px;"></div>
+    <div class="ctrl-row"><label>Color del track</label><input type="color" id="cfg-color" value="#6b7f6b" oninput="applyStyle();renderChart();"></div>
+    <div class="ctrl-row">
+      <label>Grosor</label>
+      <input type="range" id="cfg-weight" min="1" max="8" value="3" oninput="applyStyle();document.getElementById('cfg-wv').textContent=this.value+'px'">
+      <span id="cfg-wv" style="font-size:11px;color:#666;">3px</span>
+    </div>
+    <div class="ctrl-row"><label>Altura del widget</label>
+      <select id="cfg-h">
+        <option value="380">380px — compacto</option>
+        <option value="480" selected>480px — estándar</option>
+        <option value="580">580px — grande</option>
+        <option value="700">700px — muy grande</option>
+      </select>
+    </div>
+    <div class="ctrl-row"><label>Mapa base</label>
+      <select id="cfg-tile">
+        <option value="carto">Gris CartoDB</option>
+        <option value="osm">OpenStreetMap</option>
+        <option value="topo">Topográfico</option>
+      </select>
+    </div>
+    <div class="divider"></div>
+    <div class="sec-label">Qué mostrar en el widget</div>
+    <div class="toggle-row">
+      <label class="toggle-wrap"><input type="checkbox" id="cfg-stats" checked><span class="toggle-slider"></span></label>
+      <span class="toggle-label" onclick="document.getElementById('cfg-stats').click()">Mostrar estadísticas (distancia y desnivel)</span>
+    </div>
+    <div class="toggle-row">
+      <label class="toggle-wrap"><input type="checkbox" id="cfg-profile" checked><span class="toggle-slider"></span></label>
+      <span class="toggle-label" onclick="document.getElementById('cfg-profile').click()">Mostrar perfil altimétrico</span>
+    </div>
+    <div class="toggle-row">
+      <label class="toggle-wrap"><input type="checkbox" id="cfg-pois" checked><span class="toggle-slider"></span></label>
+      <span class="toggle-label" onclick="document.getElementById('cfg-pois').click()">Mostrar puntos de interés</span>
+    </div>
+    <div class="toggle-row">
+      <label class="toggle-wrap"><input type="checkbox" id="cfg-ab" checked><span class="toggle-slider"></span></label>
+      <span class="toggle-label" onclick="document.getElementById('cfg-ab').click()">Mostrar marcadores A / B (inicio y fin)</span>
+    </div>
+  </div>
+
+  <!-- POIS -->
+  <div class="panel" id="panel-pois">
+    <div class="hint">Añade puntos que aparecerán como etiquetas en el mapa embebido. Haz clic en el mapa (desde la pestaña Mapa) para colocarlos con precisión, o añádelos manualmente. El km mostrado usa la distancia homologada si la has definido.</div>
+    <div id="pois-list"></div>
+    <div class="action-row" style="margin-top:10px;">
+      <button class="btn btn-accent" onclick="addPOI()">+ Añadir punto</button>
+      <button class="btn" onclick="activateMapClick()">📍 Clic en mapa</button>
+    </div>
+  </div>
+
+  <!-- EXPORT -->
+  <div class="panel" id="panel-export">
+    <div class="sec-label" style="margin-bottom:6px;">Opción recomendada: iframe (evita el bug de wpautop en WordPress)</div>
+    <div style="font-size:10px;color:#666;margin-bottom:8px;line-height:1.5;">WordPress a veces mete etiquetas &lt;p&gt; dentro del script y lo rompe. Con este método, el mapa vive en una página aparte alojada en GitHub Pages y en WordPress solo pegas una línea de iframe — inmune a ese bug.</div>
+    <div class="ctrl-row"><label>Nombre de archivo</label><input type="text" id="cfg-slug" placeholder="se genera del nombre de la ruta" style="width:260px;"></div>
+    <div class="ctrl-row"><label>URL base GitHub Pages</label><input type="text" id="cfg-base-url" value="https://blogmaldito.github.io/visor-gpx/mapas/" style="width:340px;"></div>
+    <div class="action-row">
+      <button class="btn btn-primary" onclick="downloadStandalonePage()">⬇ 1. Descargar página independiente</button>
+      <button class="btn btn-accent" onclick="copyIframeEmbed()">📋 2. Copiar código iframe</button>
+      <span id="iframe-status" style="font-size:11px;"></span>
+    </div>
+    <div style="font-size:10px;color:#444;margin-bottom:6px;">Sube el .html descargado a tu repo <code>visor-gpx</code>, dentro de una carpeta <code>/mapas/</code> (mismo proceso que con index.html). Luego pega el iframe en el bloque de código de WordPress.</div>
+    <div class="code-box" id="iframe-code-out">El código del iframe aparecerá aquí tras generarlo.</div>
+
+    <div class="divider"></div>
+    <div class="sec-label" style="margin-bottom:6px;">Alternativa: HTML directo (más simple, pero sensible al bug de wpautop)</div>
+    <div class="action-row">
+      <button class="btn" onclick="buildWidget()">▶ Generar widget</button>
+      <button class="btn" onclick="copyWidget()">📋 Copiar HTML</button>
+      <button class="btn" onclick="downloadGPX()">⬇ Descargar GPX editado</button>
+      <span id="copy-status"></span>
+    </div>
+    <div class="code-box" id="code-out">Pulsa "Generar widget" para ver el código.</div>
+    <div class="divider"></div>
+    <div class="sec-label">Vista previa</div>
+    <div style="font-size:10px;color:#444;margin-bottom:6px;">Esta vista previa nunca ejecuta el mapa (limitación del navegador al inyectar HTML); solo sirve para ver la maquetación de texto/estilos.</div>
+    <div id="preview-out"></div>
+  </div>
+
+</div><!-- /main-sec -->
+
+<div style="font-size:10px;color:#2a2a2a;text-align:center;padding:20px 0;letter-spacing:0.5px;">BLOGMALDITO · Herramienta de uso interno</div>
+</div>
+
+<script>
+var pts=[],editPts=[],origPts=[],pois=[];
+var map=null,trackLine=null,editMarkers=[],poiMarkers=[],mapSegments=[],tileLayers={};
+var chart=null;
+var editMode=false,mapClickMode=false;
+
+var gpsDist=0,homologDist=null;
+var colorMode='solid',brushActive=false,segmentColors=[];
+var imageProfileApplied=false;
+
+if(location.protocol==='file:')document.getElementById('file-warning').style.display='block';
+
+var TILES={
+  carto:   {url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', att:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'},
+  osm:     {url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', att:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'},
+  topo:    {url:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', att:'&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://opentopomap.org">OpenTopoMap</a>'},
+  satellite:{url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', att:'&copy; Esri'}
+};
+
+// ── DRAG & DROP ──
+var dz=document.getElementById('drop-zone');
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.style.borderColor='#6b7f6b';});
+dz.addEventListener('dragleave',function(){dz.style.borderColor='#2a2a2a';});
+dz.addEventListener('drop',function(e){
+  e.preventDefault();dz.style.borderColor='#2a2a2a';
+  var f=e.dataTransfer.files[0];
+  if(f){document.getElementById('file-inp').files=e.dataTransfer.files;loadFile(document.getElementById('file-inp'));}
+});
+
+// ── LOAD ──
+function loadFile(inp){
+  var f=inp.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      var ext=f.name.split('.').pop().toLowerCase();
+      var raw=ext==='kml'?parseKML(e.target.result):parseGPX(e.target.result);
+      if(!raw||raw.length<2){alert('No se encontraron puntos en el archivo.');return;}
+      raw=decimate(raw,1500);
+      pts=raw; editPts=raw.map(cp); origPts=raw.map(cp);
+      homologDist=null; imageProfileApplied=false; segmentColors=[];
+      document.getElementById('btn-restore-ele').style.display='none';
+      document.getElementById('cfg-name').value=f.name.replace(/\.(gpx|kml)$/i,'');
+      showStats();
+      initMap();
+      renderChart();
+      document.getElementById('stats-sec').style.display='block';
+      document.getElementById('main-sec').style.display='block';
+      document.getElementById('upload-sec').style.display='none';
+    }catch(err){alert('Error: '+err.message);}
+  };
+  r.readAsText(f);
+}
+
+function cp(p){return{lat:p.lat,lon:p.lon,ele:p.ele};}
+
+function parseGPX(txt){
+  var doc=new DOMParser().parseFromString(txt,'application/xml');
+  var ns='http://www.topografix.com/GPX/1/1';
+  var tps=doc.getElementsByTagNameNS(ns,'trkpt');
+  if(!tps.length)tps=doc.getElementsByTagName('trkpt');
+  if(!tps.length){tps=doc.getElementsByTagNameNS(ns,'rtept');if(!tps.length)tps=doc.getElementsByTagName('rtept');}
+  var out=[];
+  for(var i=0;i<tps.length;i++){
+    var tp=tps[i];
+    var lat=parseFloat(tp.getAttribute('lat'));
+    var lon=parseFloat(tp.getAttribute('lon'));
+    var eleEl=tp.getElementsByTagName('ele')[0];
+    var ele=eleEl?parseFloat(eleEl.textContent):0;
+    if(!isNaN(lat)&&!isNaN(lon))out.push({lat:lat,lon:lon,ele:isNaN(ele)?0:ele});
+  }
+  return out;
+}
+
+function parseKML(txt){
+  var doc=new DOMParser().parseFromString(txt,'application/xml');
+  var coords=doc.querySelector('coordinates');
+  if(!coords)return[];
+  var out=[];
+  coords.textContent.trim().split(/\s+/).forEach(function(c){
+    var p=c.split(',');
+    if(p.length>=2){var lon=parseFloat(p[0]),lat=parseFloat(p[1]),ele=p[2]?parseFloat(p[2]):0;if(!isNaN(lat)&&!isNaN(lon))out.push({lat:lat,lon:lon,ele:isNaN(ele)?0:ele});}
+  });
+  return out;
+}
+
+function decimate(arr,max){
+  if(arr.length<=max)return arr;
+  var step=Math.ceil(arr.length/max),out=[];
+  for(var i=0;i<arr.length;i+=step)out.push(arr[i]);
+  if(out[out.length-1]!==arr[arr.length-1])out.push(arr[arr.length-1]);
+  return out;
+}
+
+// ── STATS ──
+function hav(a,b){
+  var R=6371000,dLat=(b.lat-a.lat)*Math.PI/180,dLon=(b.lon-a.lon)*Math.PI/180;
+  var aa=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return R*2*Math.atan2(Math.sqrt(aa),Math.sqrt(1-aa));
+}
+
+function calcStats(p){
+  var d=0,up=0,dn=0;
+  for(var i=1;i<p.length;i++){d+=hav(p[i-1],p[i]);var de=p[i].ele-p[i-1].ele;if(de>0)up+=de;else dn+=Math.abs(de);}
+  return{dist:(d/1000).toFixed(1),up:Math.round(up),down:Math.round(dn)};
+}
+
+function showStats(){
+  var s=calcStats(editPts);
+  gpsDist=parseFloat(s.dist);
+  if(homologDist===null)document.getElementById('st-dist').value=s.dist;
+  document.getElementById('st-up').value=s.up;
+  document.getElementById('st-down').value=s.down;
+  document.getElementById('st-pts').value=editPts.length;
+  updateDistHint();
+}
+
+// ── DISTANCIA HOMOLOGADA ──
+function onDistInput(){
+  var v=parseFloat(document.getElementById('st-dist').value.replace(',','.'));
+  if(!isNaN(v)&&v>0){homologDist=v;}
+  else{homologDist=null;document.getElementById('st-dist').value=gpsDist.toFixed(1);}
+  updateDistHint();
+  renderChart();drawTrack();
+}
+function resetDist(){
+  homologDist=null;
+  document.getElementById('st-dist').value=gpsDist.toFixed(1);
+  updateDistHint();
+  renderChart();drawTrack();
+}
+function updateDistHint(){
+  var hint=document.getElementById('dist-hint');
+  if(homologDist!==null&&Math.abs(homologDist-gpsDist)>0.05){
+    hint.style.display='inline';
+    hint.textContent='GPS: '+gpsDist.toFixed(1)+' km · usar GPS';
+  }else{
+    hint.style.display='none';
+  }
+}
+function distScale(){
+  if(homologDist!==null&&gpsDist>0)return homologDist/gpsDist;
+  return 1;
+}
+function cumDists(p){
+  var d=[0];
+  for(var i=1;i<p.length;i++)d.push(d[i-1]+hav(p[i-1],p[i])/1000);
+  return d;
+}
+function scaledCumDists(p){
+  var raw=cumDists(p),sc=distScale();
+  if(sc===1)return raw;
+  return raw.map(function(d){return d*sc;});
+}
+
+// ── PERFIL COMPARTIDO (chart + mapa coloreado) ──
+function getProfilePoints(){
+  var k=parseInt(document.getElementById('smooth').value)||0;
+  var eles=smooth(editPts.map(function(p){return p.ele;}),k);
+  var dists=scaledCumDists(editPts);
+  var n=eles.length;
+  var step=Math.max(1,Math.floor(n/300));
+  var out=[];
+  for(var i=0;i<n;i+=step)out.push({idx:i,lat:editPts[i].lat,lon:editPts[i].lon,ele:Math.round(eles[i]),dist:dists[i]});
+  var last=n-1;
+  if(out[out.length-1].idx!==last)out.push({idx:last,lat:editPts[last].lat,lon:editPts[last].lon,ele:Math.round(eles[last]),dist:dists[last]});
+  return out;
+}
+function ensureSegArray(n){
+  n=Math.max(0,n);
+  if(!segmentColors)segmentColors=[];
+  while(segmentColors.length<n)segmentColors.push(null);
+  segmentColors.length=n;
+}
+function hasPaint(){return segmentColors.some(function(c){return !!c;});}
+
+// ── COLOR ──
+function hexToRgb(h){h=(h||'#6b7f6b').replace('#','');if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];var n=parseInt(h,16);return[(n>>16)&255,(n>>8)&255,n&255];}
+function rgbToHex(r,g,b){return '#'+[r,g,b].map(function(x){x=Math.max(0,Math.min(255,Math.round(x)));var s=x.toString(16);return s.length<2?'0'+s:s;}).join('');}
+function lerpColor(a,b,f){var ca=hexToRgb(a),cb=hexToRgb(b);return rgbToHex(ca[0]+(cb[0]-ca[0])*f,ca[1]+(cb[1]-ca[1])*f,ca[2]+(cb[2]-ca[2])*f);}
+function hexToRgba(hex,a){var c=hexToRgb(hex);return 'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')';}
+
+function stopColor(v){
+  var c0=document.getElementById('grad-c0').value,c1=document.getElementById('grad-c1').value,c2=document.getElementById('grad-c2').value;
+  var t1=parseFloat(document.getElementById('grad-t1').value)||3,t2=parseFloat(document.getElementById('grad-t2').value)||8;
+  if(t2<=t1)t2=t1+0.1;
+  if(v<=0)return c0;
+  if(v<=t1)return lerpColor(c0,c1,v/t1);
+  if(v<=t2)return lerpColor(c1,c2,(v-t1)/(t2-t1));
+  return c2;
+}
+function gradeColor(i,pp){
+  var p0=pp[i],p1=pp[i+1];
+  var dd=(p1.dist-p0.dist)*1000,de=p1.ele-p0.ele;
+  var pct=dd>0.5?(de/dd)*100:0;
+  return stopColor(Math.abs(pct));
+}
+function segColor(i,pp){
+  if(segmentColors[i])return segmentColors[i];
+  if(colorMode==='gradient')return gradeColor(i,pp);
+  return document.getElementById('cfg-color').value;
+}
+function onColorModeChange(){
+  colorMode=document.getElementById('color-mode').value;
+  document.getElementById('gradient-controls').style.display=colorMode==='gradient'?'inline-flex':'none';
+  renderChart();drawTrack();
+}
+function onBrushToggle(){
+  brushActive=document.getElementById('brush-active').checked;
+  document.getElementById('brush-hint').style.display=brushActive?'inline':'none';
+  if(map)map.getContainer().style.cursor=brushActive?'crosshair':'';
+  drawTrack();
+}
+function clearPaint(){
+  var pp=getProfilePoints();
+  segmentColors=new Array(Math.max(0,pp.length-1)).fill(null);
+  renderChart();drawTrack();
+  setStatus('Pintura eliminada','#6b7f6b');
+}
+
+// ── PINCEL SOBRE EL PERFIL ──
+function attachBrushEvents(){
+  var canvas=document.getElementById('elev-chart');
+  var dragging=false;
+  canvas.onmousedown=function(e){if(!brushActive)return;dragging=true;paintAtClientX(e.clientX);};
+  canvas.onmousemove=function(e){if(!brushActive||!dragging)return;paintAtClientX(e.clientX);};
+  canvas.onmouseup=function(){dragging=false;};
+  canvas.onmouseleave=function(){dragging=false;};
+  canvas.ontouchstart=function(e){if(!brushActive)return;dragging=true;paintAtClientX(e.touches[0].clientX);e.preventDefault();};
+  canvas.ontouchmove=function(e){if(!brushActive||!dragging)return;paintAtClientX(e.touches[0].clientX);e.preventDefault();};
+  canvas.ontouchend=function(){dragging=false;};
+}
+function paintAtClientX(clientX){
+  if(!chart)return;
+  var rect=chart.canvas.getBoundingClientRect();
+  var x=clientX-rect.left;
+  var km=chart.scales.x.getValueForPixel(x);
+  if(km==null||isNaN(km))return;
+  var pp=getProfilePoints();
+  ensureSegArray(pp.length-1);
+  var idx=0,min=Infinity;
+  for(var i=0;i<pp.length-1;i++){
+    var mid=(pp[i].dist+pp[i+1].dist)/2;
+    var d=Math.abs(mid-km);
+    if(d<min){min=d;idx=i;}
+  }
+  segmentColors[idx]=document.getElementById('brush-color').value;
+  drawTrack();
+  if(chart)chart.update('none');
+}
+
+// ── MAP ──
+function initMap(){
+  if(map){
+    if(trackLine)map.removeLayer(trackLine);
+    mapSegments.forEach(function(m){map.removeLayer(m);});mapSegments=[];
+    editMarkers.forEach(function(m){map.removeLayer(m);});editMarkers=[];
+    poiMarkers.forEach(function(m){map.removeLayer(m);});poiMarkers=[];
+  }else{
+    map=L.map('map');
+  }
+  setTile('carto');
+  drawTrack();
+  var bounds=L.latLngBounds(editPts.map(function(p){return[p.lat,p.lon];}));
+  map.fitBounds(bounds,{padding:[20,20]});
+  addAbMarkers();
+  setTimeout(function(){map.invalidateSize();map.fitBounds(bounds,{padding:[20,20]});},200);
+  map.on('click',function(e){
+    if(mapClickMode){
+      var idx=nearestPointIdx(e.latlng);
+      var dists=scaledCumDists(editPts);
+      var kmVal=dists[idx].toFixed(1);
+      pois.push({lat:e.latlng.lat,lon:e.latlng.lng,name:'Punto km '+kmVal,km:kmVal});
+      mapClickMode=false;
+      map.getContainer().style.cursor=brushActive?'crosshair':'';
+      renderPOIs();
+      drawPOIMarkers();
+      setStatus('Punto añadido','#6b7f6b');
+    }
+  });
+}
+
+function nearestPointIdx(latlng){
+  var best=0,min=Infinity;
+  editPts.forEach(function(p,i){var d=(p.lat-latlng.lat)*(p.lat-latlng.lat)+(p.lon-latlng.lng)*(p.lon-latlng.lng);if(d<min){min=d;best=i;}});
+  return best;
+}
+
+function drawTrack(){
+  mapSegments.forEach(function(l){map.removeLayer(l);});mapSegments=[];
+  if(trackLine){map.removeLayer(trackLine);trackLine=null;}
+
+  var pp=getProfilePoints();
+  ensureSegArray(pp.length-1);
+  var useColored=colorMode==='gradient'||hasPaint()||brushActive;
+  var w=parseInt(document.getElementById('cfg-weight').value);
+
+  if(!useColored){
+    var ll=editPts.map(function(p){return[p.lat,p.lon];});
+    var col=document.getElementById('cfg-color').value;
+    trackLine=L.polyline(ll,{color:col,weight:w,opacity:0.9}).addTo(map);
+  }else{
+    for(var i=0;i<pp.length-1;i++){
+      (function(i){
+        var c=segColor(i,pp);
+        var seg=L.polyline([[pp[i].lat,pp[i].lon],[pp[i+1].lat,pp[i+1].lon]],{color:c,weight:w,opacity:0.95}).addTo(map);
+        seg.on('click',function(){
+          if(!brushActive)return;
+          segmentColors[i]=document.getElementById('brush-color').value;
+          drawTrack();
+          if(chart)chart.update('none');
+        });
+        mapSegments.push(seg);
+      })(i);
+    }
+  }
+}
+
+function addAbMarkers(){
+  var iA=L.divIcon({html:'<div style="width:16px;height:16px;border-radius:50%;background:#6b7f6b;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.5);"></div>',className:'',iconSize:[22,22],iconAnchor:[11,11]});
+  var iB=L.divIcon({html:'<div style="width:16px;height:16px;border-radius:50%;background-image:repeating-conic-gradient(#1a1a1a 0% 25%,#fff 0% 50%);background-size:8px 8px;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.5);"></div>',className:'',iconSize:[22,22],iconAnchor:[11,11]});
+  L.marker([editPts[0].lat,editPts[0].lon],{icon:iA,zIndexOffset:1000}).addTo(map);
+  L.marker([editPts[editPts.length-1].lat,editPts[editPts.length-1].lon],{icon:iB,zIndexOffset:1000}).addTo(map);
+}
+
+function setTile(key){
+  Object.keys(tileLayers).forEach(function(k){if(map.hasLayer(tileLayers[k]))map.removeLayer(tileLayers[k]);});
+  if(!tileLayers[key])tileLayers[key]=L.tileLayer(TILES[key].url,{attribution:TILES[key].att,maxZoom:19});
+  tileLayers[key].addTo(map);
+  tileLayers[key].bringToBack();
+}
+
+function applyStyle(){drawTrack();}
+
+// ── EDIT MODE ──
+function toggleEdit(){
+  editMode=!editMode;
+  var btn=document.getElementById('btn-edit');
+  var hint=document.getElementById('edit-hint');
+  if(editMode){
+    btn.textContent='✓ Guardar edición';
+    btn.className='btn btn-danger';
+    hint.className='hint warn';
+    hint.textContent='Edición activa — los marcadores azules son arrastrables. Haz clic en el track para añadir más puntos de edición. Pulsa "Guardar edición" para confirmar.';
+    showEditMarkers();
+    map.on('click',onEditClick);
+  }else{
+    btn.textContent='✏ Editar track';
+    btn.className='btn btn-accent';
+    hint.className='hint';
+    hint.textContent='Modo visualización — activa la edición para mover puntos del track arrastrándolos en el mapa.';
+    hideEditMarkers();
+    map.off('click',onEditClick);
+    drawTrack();
+    showStats();
+    renderChart();
+    setStatus('Track guardado','#6b7f6b');
+  }
+}
+
+function showEditMarkers(){
+  hideEditMarkers();
+  var step=Math.max(1,Math.floor(editPts.length/50));
+  for(var i=0;i<editPts.length;i+=step)mkEditMarker(i);
+  if((editPts.length-1)%step!==0)mkEditMarker(editPts.length-1);
+}
+
+function mkEditMarker(i){
+  var p=editPts[i];
+  var ic=L.divIcon({html:'<div style="width:10px;height:10px;background:#3B82C4;border:2px solid #fff;border-radius:50%;cursor:move;"></div>',className:'',iconAnchor:[5,5]});
+  var m=L.marker([p.lat,p.lon],{icon:ic,draggable:true});
+  m._ptIdx=i;
+  m.on('drag',function(e){
+    var ll=e.target.getLatLng();
+    editPts[e.target._ptIdx].lat=ll.lat;
+    editPts[e.target._ptIdx].lon=ll.lng;
+    drawTrack();
+  });
+  m.addTo(map);
+  editMarkers.push(m);
+}
+
+function hideEditMarkers(){editMarkers.forEach(function(m){map.removeLayer(m);});editMarkers=[];}
+
+function onEditClick(e){
+  var best=nearestPointIdx(e.latlng);
+  mkEditMarker(best);
+}
+
+function resetTrack(){
+  if(!confirm('¿Restaurar el track original?'))return;
+  editPts=origPts.map(cp);
+  homologDist=null;imageProfileApplied=false;segmentColors=[];
+  document.getElementById('btn-restore-ele').style.display='none';
+  drawTrack();showStats();renderChart();
+  if(editMode){hideEditMarkers();showEditMarkers();}
+  setStatus('Track restaurado','#6b7f6b');
+}
+
+function setStatus(msg,col){var s=document.getElementById('status');s.textContent=msg;s.style.color=col||'#6b7f6b';}
+
+// ── CHART ──
+function smooth(arr,k){
+  if(k<=0)return arr;
+  var out=[];
+  for(var i=0;i<arr.length;i++){var sum=0,n=0;for(var j=Math.max(0,i-k);j<=Math.min(arr.length-1,i+k);j++){sum+=arr[j];n++;}out.push(sum/n);}
+  return out;
+}
+
+function renderChart(){
+  var k=parseInt(document.getElementById('smooth').value);
+  document.getElementById('smooth-v').textContent=k;
+  var ys=['Auto','Ampliado','Normal','Comprimido'];
+  document.getElementById('yscale-v').textContent=ys[document.getElementById('yscale').value];
+
+  var pp=getProfilePoints();
+  ensureSegArray(pp.length-1);
+
+  var data=pp.map(function(p){return{x:p.dist,y:p.ele};});
+  var totalKm=pp.length?pp[pp.length-1].dist:0;
+  var kmStep=totalKm<=10?1:(totalKm<=25?2.5:5);
+
+  var eleVals=pp.map(function(p){return p.ele;});
+  var minE=Math.min.apply(null,eleVals),maxE=Math.max.apply(null,eleVals),rng=maxE-minE;
+  var yv=parseInt(document.getElementById('yscale').value);
+  var yMin,yMax;
+  if(yv===0){yMin=Math.max(0,minE-rng*0.1);yMax=maxE+rng*0.1;}
+  else if(yv===1){yMin=Math.max(0,minE-rng*0.02);yMax=maxE+rng*0.02;}
+  else if(yv===2){yMin=0;yMax=maxE+rng*0.3;}
+  else{yMin=0;yMax=maxE*2;}
+
+  var baseCol=document.getElementById('cfg-color').value;
+  var ctx=document.getElementById('elev-chart').getContext('2d');
+  if(chart)chart.destroy();
+  chart=new Chart(ctx,{
+    type:'line',
+    data:{datasets:[{
+      data:data,fill:true,
+      backgroundColor:hexToRgba(baseCol,0.10),
+      borderColor:baseCol,borderWidth:2,pointRadius:0,tension:0.3,
+      segment:{
+        borderColor:function(c){return segColor(c.p0DataIndex,pp);},
+        backgroundColor:function(c){return hexToRgba(segColor(c.p0DataIndex,pp),0.12);}
+      }
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.parsed.y+' m';},title:function(c){return c[0].parsed.x.toFixed(1)+' km';}}}},
+      scales:{
+        x:{type:'linear',min:0,max:totalKm,ticks:{stepSize:kmStep,font:{size:9},color:'#444',callback:function(v){return(Math.round(v*10)/10)+' km';}},grid:{color:'rgba(255,255,255,0.03)'}},
+        y:{min:Math.round(yMin),max:Math.round(yMax),ticks:{font:{size:9},color:'#444',callback:function(v){return v+'m';}},grid:{color:'rgba(255,255,255,0.04)'}}
+      }
+    }
+  });
+  attachBrushEvents();
+}
+
+// ── PERFIL DESDE IMAGEN (vía Claude en el chat) ──
+function copyImgPrompt(){
+  var prompt='Esta imagen muestra el perfil de altimetría (o un gráfico de estrategia de carrera con forma de perfil) de una carrera de running o trail running. Analiza la curva y responde ÚNICAMENTE con un JSON válido, sin texto adicional y sin bloques de markdown, con este formato exacto:\n{"points":[[km,altitud_m],...]}\nIncluye entre 25 y 50 puntos que reconstruyan fielmente la forma de la curva de principio a fin, empezando en km 0. Si el gráfico no indica altitud en metros, estima una curva razonable y avísame de que es una aproximación.';
+  navigator.clipboard.writeText(prompt).then(function(){
+    var s=document.getElementById('img-prompt-status');
+    s.textContent='¡Copiado! Pégalo en el chat junto con tu imagen.';
+    setTimeout(function(){s.textContent='';},4000);
+  });
+}
+
+function applyImageJSON(){
+  if(!editPts.length){alert('Carga primero un GPX o KML.');return;}
+  var status=document.getElementById('img-status');
+  var raw=document.getElementById('img-json').value.trim();
+  if(!raw){status.style.color='#c07070';status.textContent='Pega primero el JSON.';return;}
+  try{
+    var parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    if(!parsed.points||!parsed.points.length)throw new Error('sin puntos');
+    applyImageProfile(parsed.points);
+    status.style.color='#6b7f6b';status.textContent='✓ Perfil actualizado desde imagen';
+    document.getElementById('btn-restore-ele').style.display='inline-block';
+    setTimeout(function(){status.textContent='';},4000);
+  }catch(err){
+    status.style.color='#c07070';status.textContent='JSON no válido: '+err.message;
+  }
+}
+
+
+function applyImageProfile(points){
+  points=points.slice().sort(function(a,b){return a[0]-b[0];});
+  var dists=scaledCumDists(editPts);
+  var totalKm=dists[dists.length-1];
+  var maxImgKm=points[points.length-1][0];
+  var scaleX=(totalKm>0&&maxImgKm>0)?totalKm/maxImgKm:1;
+  var xs=points.map(function(p){return p[0]*scaleX;});
+  var ys=points.map(function(p){return p[1];});
+  editPts.forEach(function(p,i){p.ele=interpLinear(xs,ys,dists[i]);});
+  imageProfileApplied=true;
+  showStats();renderChart();drawTrack();
+}
+
+function interpLinear(xs,ys,x){
+  if(x<=xs[0])return ys[0];
+  if(x>=xs[xs.length-1])return ys[ys.length-1];
+  for(var i=0;i<xs.length-1;i++){
+    if(x>=xs[i]&&x<=xs[i+1]){
+      var f=(x-xs[i])/((xs[i+1]-xs[i])||1);
+      return ys[i]+(ys[i+1]-ys[i])*f;
+    }
+  }
+  return ys[ys.length-1];
+}
+
+function restoreGPSProfile(){
+  editPts.forEach(function(p,i){p.ele=origPts[i].ele;});
+  imageProfileApplied=false;
+  document.getElementById('btn-restore-ele').style.display='none';
+  showStats();renderChart();drawTrack();
+  setStatus('Altitud GPS restaurada','#6b7f6b');
+}
+
+// ── POIS ──
+function addPOI(){pois.push({lat:0,lon:0,name:'Punto de interés',km:'0'});renderPOIs();}
+function activateMapClick(){mapClickMode=true;map.getContainer().style.cursor='crosshair';switchTab('mapa',document.querySelector('.tab'));setStatus('Haz clic en el mapa para colocar el punto','#e09a30');}
+function removePOI(i){pois.splice(i,1);renderPOIs();drawPOIMarkers();}
+
+function renderPOIs(){
+  var c=document.getElementById('pois-list');
+  if(!pois.length){c.innerHTML='<div style="font-size:11px;color:#444;padding:8px 0;">Sin puntos de interés.</div>';return;}
+  c.innerHTML=pois.map(function(wp,i){
+    return '<div class="wp-row">'+
+      '<span class="wp-km">km '+escH(wp.km)+'</span>'+
+      '<input type="text" value="'+escH(wp.name)+'" style="flex:1;" oninput="pois['+i+'].name=this.value">'+
+      '<button class="btn btn-danger" style="padding:3px 8px;font-size:10px;" onclick="removePOI('+i+')">✕</button>'+
+    '</div>';
+  }).join('');
+  drawPOIMarkers();
+}
+
+function drawPOIMarkers(){
+  poiMarkers.forEach(function(m){if(map)map.removeLayer(m);});poiMarkers=[];
+  pois.forEach(function(wp){
+    if(!wp.lat&&!wp.lon)return;
+    var ic=L.divIcon({html:'<div style="background:#e09a30;color:#fff;font-size:9px;font-weight:600;padding:2px 7px;border-radius:0;white-space:nowrap;font-family:sans-serif;">'+escH(wp.name)+'</div>',className:''});
+    var m=L.marker([wp.lat,wp.lon],{icon:ic});
+    if(map)m.addTo(map);
+    poiMarkers.push(m);
+  });
+}
+
+// ── TABS ──
+function switchTab(id,el){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on');});
+  el.classList.add('on');
+  document.getElementById('panel-'+id).classList.add('on');
+  if(id==='perfil')renderChart();
+  if(id==='mapa'&&map)setTimeout(function(){map.invalidateSize();},80);
+}
+
+// ── EXPORT ──
+function generateWidgetHTML(){
+  var name=document.getElementById('cfg-name').value||'Ruta';
+  var col=document.getElementById('cfg-color').value;
+  var w=document.getElementById('cfg-weight').value;
+  var h=document.getElementById('cfg-h').value;
+  var tile=document.getElementById('cfg-tile').value;
+  var showStats2=document.getElementById('cfg-stats').checked;
+  var showProf=document.getElementById('cfg-profile').checked;
+  var showPOIs=document.getElementById('cfg-pois').checked;
+  var showAB=document.getElementById('cfg-ab').checked;
+
+  var distVal=document.getElementById('st-dist').value;
+  var upVal=document.getElementById('st-up').value;
+  var downVal=document.getElementById('st-down').value;
+
+  var pp=getProfilePoints();
+  ensureSegArray(pp.length-1);
+  var useColoredMap=colorMode==='gradient'||hasPaint();
+  var segCols=[];
+  for(var i=0;i<pp.length-1;i++)segCols.push(segColor(i,pp));
+
+  var ptsJ;
+  if(useColoredMap){
+    ptsJ=JSON.stringify(pp.map(function(p){return[Math.round(p.lat*1e5)/1e5,Math.round(p.lon*1e5)/1e5];}));
+  }else{
+    var exportPts=decimate(editPts,800);
+    ptsJ=JSON.stringify(exportPts.map(function(p){return[Math.round(p.lat*1e5)/1e5,Math.round(p.lon*1e5)/1e5,Math.round(p.ele)];}));
+  }
+
+  var poisJ=showPOIs?JSON.stringify(pois.filter(function(wp){return wp.lat||wp.lon;}).map(function(wp){return{lat:wp.lat,lon:wp.lon,name:wp.name};})):'[]';
+
+  var pdJ=JSON.stringify(pp.map(function(p){return[Math.round(p.dist*100)/100,p.ele];}));
+  var colJ=JSON.stringify(segCols);
+
+  var tileUrl=TILES[tile].url;
+  var tileAtt=TILES[tile].att;
+  var uid='bm'+Date.now().toString(36);
+
+  var statsHtml='';
+  if(showStats2){
+    statsHtml='<div style="display:flex;gap:20px;padding:8px 14px;background:#fafaf8;border-bottom:1px solid #e0ddd6;flex-wrap:wrap;">'+
+      '<span style="font-size:12px;color:#555;font-family:sans-serif;"><strong style="color:#1a1a1a;">'+escH(distVal)+'</strong> km</span>'+
+      '<span style="font-size:12px;color:#555;font-family:sans-serif;"><strong style="color:#1a1a1a;">+'+escH(upVal)+'</strong> m D+</span>'+
+      '<span style="font-size:12px;color:#555;font-family:sans-serif;"><strong style="color:#1a1a1a;">-'+escH(downVal)+'</strong> m D-</span>'+
+    '</div>';
+  }
+
+  var profHtml=showProf?'<div style="padding:10px 14px;background:#fff;border-top:1px solid #e0ddd6;"><canvas id="'+uid+'-chart" style="height:90px;width:100%;display:block;"></canvas></div>':'';
+  var profScript=showProf?
+    'var pd='+pdJ+';var cols='+colJ+';'+
+    'var totalKm=pd.length?pd[pd.length-1][0]:0;'+
+    'var kmStep=totalKm<=10?1:(totalKm<=25?2.5:5);'+
+    'var ctx=document.getElementById("'+uid+'-chart").getContext("2d");'+
+    'new Chart(ctx,{type:"line",data:{datasets:[{data:pd.map(function(p){return{x:p[0],y:p[1]};}),fill:true,backgroundColor:"rgba(107,127,107,0.12)",borderColor:"'+col+'",borderWidth:1.5,pointRadius:0,tension:0.35,segment:{borderColor:function(c){return cols[c.p0DataIndex]||"'+col+'";}}}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.parsed.y+" m";},title:function(c){return c[0].parsed.x.toFixed(1)+" km";}}}},scales:{x:{type:"linear",min:0,max:totalKm,ticks:{stepSize:kmStep,font:{size:9},color:"#777",callback:function(v){return(Math.round(v*10)/10)+" km";}},grid:{color:"rgba(0,0,0,0.04)"}},y:{ticks:{font:{size:9},color:"#777",callback:function(v){return v+"m";}},grid:{color:"rgba(0,0,0,0.05)"}}}}});'
+    :'';
+
+  var abScript=showAB?
+    'var iA=L.divIcon({html:\'<div style="width:16px;height:16px;border-radius:50%;background:#6b7f6b;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.5);"></div>\',className:"",iconSize:[22,22],iconAnchor:[11,11]});'+
+    'var iB=L.divIcon({html:\'<div style="width:16px;height:16px;border-radius:50%;background-image:repeating-conic-gradient(#1a1a1a 0% 25%,#fff 0% 50%);background-size:8px 8px;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.5);"></div>\',className:"",iconSize:[22,22],iconAnchor:[11,11]});'+
+    'L.marker([pp[0][0],pp[0][1]],{icon:iA,zIndexOffset:1000}).addTo(m);'+
+    'L.marker([pp[pp.length-1][0],pp[pp.length-1][1]],{icon:iB,zIndexOffset:1000}).addTo(m);'
+    :'';
+
+  var poisScript=showPOIs?
+    'var wps='+poisJ+';'+
+    'wps.forEach(function(wp){var ic=L.divIcon({html:\'<div style="background:#e09a30;color:#fff;font-size:9px;font-weight:600;padding:2px 7px;font-family:sans-serif;">\'+wp.name+\'</div>\',className:""});L.marker([wp.lat,wp.lon],{icon:ic}).addTo(m);});'
+    :'';
+
+  var trackScript,boundsScript;
+  if(useColoredMap){
+    trackScript='var cols='+colJ+';for(var i=0;i<pp.length-1;i++){L.polyline([[pp[i][0],pp[i][1]],[pp[i+1][0],pp[i+1][1]]],{color:cols[i]||"'+col+'",weight:'+w+',opacity:0.95}).addTo(m);}';
+    boundsScript='var bnds=L.latLngBounds(pp.map(function(p){return[p[0],p[1]];}));m.fitBounds(bnds,{padding:[20,20]});';
+  }else{
+    trackScript='var pl=L.polyline(pp.map(function(p){return[p[0],p[1]];}),{color:"'+col+'",weight:'+w+',opacity:0.9}).addTo(m);';
+    boundsScript='var bnds=pl.getBounds();m.fitBounds(bnds,{padding:[20,20]});';
+  }
+
+  var html=
+'<!-- Mapa Blogmaldito: '+escH(name)+' -->\n'+
+'<div style="font-family:sans-serif;max-width:100%;margin:1.5rem 0;border:1px solid #e0ddd6;overflow:hidden;">\n'+
+'  <div style="background:#141414;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #6b7f6b;">\n'+
+'    <span style="font-size:13px;font-weight:500;color:#f0ede8;font-family:sans-serif;">'+escH(name)+'</span>\n'+
+'    <span style="font-size:9px;color:#6b7f6b;letter-spacing:1.5px;text-transform:uppercase;font-family:sans-serif;">BLOGMALDITO</span>\n'+
+'  </div>\n'+
+statsHtml+'\n'+
+'  <div id="'+uid+'" style="height:'+h+'px;"></div>\n'+
+profHtml+'\n'+
+'  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">\n'+
+'  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"><\/script>\n'+
+(showProf?'  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"><\/script>\n':'')+
+'  <script>'+
+'(function(){'+
+'var pp='+ptsJ+';'+
+'var m=L.map("'+uid+'");'+
+'L.tileLayer('+JSON.stringify(tileUrl)+',{attribution:'+JSON.stringify(tileAtt)+',maxZoom:19}).addTo(m);'+
+trackScript+
+boundsScript+
+abScript+
+poisScript+
+profScript+
+'setTimeout(function(){m.invalidateSize();m.fitBounds(bnds,{padding:[20,20]});},300);'+
+'})();'+
+'<\/script>\n'+
+'</div>';
+
+  return html;
+}
+
+function buildWidget(){
+  var html=generateWidgetHTML();
+  document.getElementById('code-out').textContent=html;
+  document.getElementById('preview-out').innerHTML=html;
+}
+
+// ── EXPORTAR COMO PÁGINA INDEPENDIENTE + IFRAME (evita el bug de wpautop) ──
+function slugify(s){
+  return (s||'ruta').toString().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/(^-+|-+$)/g,'') || 'ruta';
+}
+
+function buildStandalonePage(){
+  var name=document.getElementById('cfg-name').value||'Ruta';
+  var snippet=generateWidgetHTML();
+  return '<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n'+
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'+
+    '<title>'+escH(name)+'</title>\n'+
+    '<style>html,body{margin:0;padding:0;background:#fff;}</style>\n'+
+    '</head>\n<body>\n'+snippet+'\n'+
+    '<script>\n'+
+    'function bmSendHeight(){var h=document.body.scrollHeight;if(window.parent)window.parent.postMessage({bmHeight:h},"*");}\n'+
+    'window.addEventListener("load",function(){bmSendHeight();setTimeout(bmSendHeight,400);setTimeout(bmSendHeight,1200);setTimeout(bmSendHeight,2500);});\n'+
+    'window.addEventListener("resize",bmSendHeight);\n'+
+    '<\/script>\n</body>\n</html>';
+}
+
+function downloadStandalonePage(){
+  var slugInp=document.getElementById('cfg-slug');
+  var slug=slugify(slugInp.value||document.getElementById('cfg-name').value);
+  slugInp.value=slug;
+  var html=buildStandalonePage();
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));
+  a.download=slug+'.html';
+  a.click();
+  var s=document.getElementById('iframe-status');
+  s.style.color='#6b7f6b';
+  s.textContent='Descargado '+slug+'.html — súbelo a tu repo visor-gpx, carpeta /mapas/';
+  setTimeout(function(){s.textContent='';},5000);
+}
+
+function copyIframeEmbed(){
+  var slugInp=document.getElementById('cfg-slug');
+  var slug=slugify(slugInp.value||document.getElementById('cfg-name').value);
+  slugInp.value=slug;
+  var base=document.getElementById('cfg-base-url').value.trim().replace(/\/+$/,'')+'/';
+  var url=base+slug+'.html';
+  var h=parseInt(document.getElementById('cfg-h').value)+260;
+  var uid='bmif'+Date.now().toString(36);
+  var code='<iframe src="'+url+'" id="'+uid+'" style="width:100%;border:0;display:block;" height="'+h+'" loading="lazy" title="'+escH(document.getElementById('cfg-name').value||'Mapa')+'"></iframe>\n'+
+    '<script>window.addEventListener("message",function(e){if(e.data&&e.data.bmHeight){var f=document.getElementById("'+uid+'");if(f)f.style.height=e.data.bmHeight+"px";}});<\/script>';
+  document.getElementById('iframe-code-out').textContent=code;
+  navigator.clipboard.writeText(code).then(function(){
+    var s=document.getElementById('iframe-status');
+    s.style.color='#6b7f6b';
+    s.textContent='¡Código iframe copiado!';
+    setTimeout(function(){s.textContent='';},3000);
+  });
+}
+
+function copyWidget(){
+  buildWidget();
+  var t=document.getElementById('code-out').textContent;
+  navigator.clipboard.writeText(t).then(function(){
+    var s=document.getElementById('copy-status');s.textContent='¡Copiado!';
+    setTimeout(function(){s.textContent='';},2000);
+  });
+}
+
+function downloadGPX(){
+  var name=document.getElementById('cfg-name').value||'ruta';
+  var gpx='<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Blogmaldito" xmlns="http://www.topografix.com/GPX/1/1">\n<trk><name>'+escH(name)+'</name><trkseg>\n';
+  editPts.forEach(function(p){gpx+='<trkpt lat="'+p.lat+'" lon="'+p.lon+'"><ele>'+Math.round(p.ele)+'</ele></trkpt>\n';});
+  gpx+='</trkseg></trk></gpx>';
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([gpx],{type:'application/gpx+xml'}));
+  a.download=name.replace(/\s+/g,'-').toLowerCase()+'-editado.gpx';
+  a.click();
+}
+
+function escH(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>
