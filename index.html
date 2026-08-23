@@ -915,6 +915,12 @@ function switchTab(id,el){
 }
 
 // ── EXPORT ──
+function noSchemeExpr(str){
+  if(str.indexOf('://')===-1)return JSON.stringify(str);
+  var masked=str.split('://').join('##');
+  return JSON.stringify(masked)+'.split("##").join(String.fromCharCode(58,47,47))';
+}
+
 function generateWidgetHTML(){
   var name=document.getElementById('cfg-name').value||'Ruta';
   var col=document.getElementById('cfg-color').value;
@@ -1009,7 +1015,7 @@ profHtml+'\n'+
 '(function(){'+
 'var pp='+ptsJ+';'+
 'var m=L.map("'+uid+'");'+
-'L.tileLayer('+JSON.stringify(tileUrl)+',{attribution:'+JSON.stringify(tileAtt)+',maxZoom:19}).addTo(m);'+
+'L.tileLayer('+noSchemeExpr(tileUrl)+',{attribution:'+noSchemeExpr(tileAtt)+',maxZoom:19}).addTo(m);'+
 trackScript+
 boundsScript+
 abScript+
