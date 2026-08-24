@@ -75,6 +75,8 @@ input[type=text],input[type=number],select{
 input[type=text]:focus,input[type=number]:focus,select:focus{border-color:#6b7f6b;}
 select option{background:#1a1a1a;}
 input[type=color]{width:32px;height:28px;border:1px solid #2a2a2a;padding:2px;cursor:pointer;background:#1a1a1a;}
+.brush-swatch{width:24px;height:24px;border-radius:4px;border:2px solid #2a2a2a;cursor:pointer;padding:0;transition:border-color 0.1s;}
+.brush-swatch:hover{border-color:#666;}
 input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#6b7f6b;}
 
 /* TOGGLE */
@@ -241,7 +243,10 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#6b7f6b;
       <div class="chart-controls">
         <label class="toggle-wrap"><input type="checkbox" id="brush-active" onchange="onBrushToggle()"><span class="toggle-slider"></span></label>
         <span class="toggle-label" onclick="document.getElementById('brush-active').click()">Pincel manual</span>
-        <input type="color" id="brush-color" value="#3B82C4" title="Color del pincel">
+        <button class="brush-swatch" style="background:#3aa655;" onclick="setBrushColor('#3aa655')" title="Verde"></button>
+        <button class="brush-swatch" style="background:#e0932e;" onclick="setBrushColor('#e0932e')" title="Amarillo anaranjado"></button>
+        <button class="brush-swatch" style="background:#c0392b;" onclick="setBrushColor('#c0392b')" title="Rojo"></button>
+        <input type="color" id="brush-color" value="#3aa655" title="Color del pincel">
         <button class="btn" onclick="clearPaint()">🧹 Limpiar pintura</button>
         <span class="ctrl-label" id="brush-hint" style="display:none;color:#e09a30;">arrastra sobre el perfil o haz clic en tramos del mapa para pintar</span>
       </div>
@@ -296,8 +301,26 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#6b7f6b;
     <div class="divider"></div>
     <div class="sec-label">Qué mostrar en el widget</div>
     <div class="toggle-row">
-      <label class="toggle-wrap"><input type="checkbox" id="cfg-stats" checked><span class="toggle-slider"></span></label>
-      <span class="toggle-label" onclick="document.getElementById('cfg-stats').click()">Mostrar estadísticas (distancia y desnivel)</span>
+      <label class="toggle-wrap"><input type="checkbox" id="cfg-stats" checked oninput="toggleStatDetail()"><span class="toggle-slider"></span></label>
+      <span class="toggle-label" onclick="document.getElementById('cfg-stats').click();toggleStatDetail()">Mostrar estadísticas</span>
+    </div>
+    <div id="stat-detail" style="margin-left:44px;margin-bottom:10px;">
+      <div class="toggle-row">
+        <label class="toggle-wrap"><input type="checkbox" id="cfg-stat-dist" checked><span class="toggle-slider"></span></label>
+        <span class="toggle-label" onclick="document.getElementById('cfg-stat-dist').click()">Distancia</span>
+      </div>
+      <div class="toggle-row">
+        <label class="toggle-wrap"><input type="checkbox" id="cfg-stat-up" checked><span class="toggle-slider"></span></label>
+        <span class="toggle-label" onclick="document.getElementById('cfg-stat-up').click()">Desnivel +</span>
+      </div>
+      <div class="toggle-row">
+        <label class="toggle-wrap"><input type="checkbox" id="cfg-stat-down" checked><span class="toggle-slider"></span></label>
+        <span class="toggle-label" onclick="document.getElementById('cfg-stat-down').click()">Desnivel −</span>
+      </div>
+      <div id="custom-stats-list"></div>
+      <div class="action-row" style="margin-top:4px;">
+        <button class="btn btn-accent" style="font-size:11px;padding:5px 10px;" onclick="addCustomStat()">+ Añadir estadística propia</button>
+      </div>
     </div>
     <div class="toggle-row">
       <label class="toggle-wrap"><input type="checkbox" id="cfg-profile" checked><span class="toggle-slider"></span></label>
@@ -366,6 +389,7 @@ var editMode=false,mapClickMode=false;
 var gpsDist=0,homologDist=null;
 var colorMode='solid',brushActive=false,segmentColors=[];
 var imageProfileApplied=false;
+var customStats=[];
 
 if(location.protocol==='file:')document.getElementById('file-warning').style.display='block';
 
@@ -563,6 +587,9 @@ function onColorModeChange(){
   colorMode=document.getElementById('color-mode').value;
   document.getElementById('gradient-controls').style.display=colorMode==='gradient'?'inline-flex':'none';
   renderChart();drawTrack();
+}
+function setBrushColor(c){
+  document.getElementById('brush-color').value=c;
 }
 function onBrushToggle(){
   brushActive=document.getElementById('brush-active').checked;
@@ -876,6 +903,29 @@ function restoreGPSProfile(){
 }
 
 // ── POIS ──
+// ── ESTADÍSTICAS PERSONALIZADAS ──
+function toggleStatDetail(){
+  document.getElementById('stat-detail').style.display=document.getElementById('cfg-stats').checked?'block':'none';
+}
+function addCustomStat(){
+  customStats.push({label:'',value:''});
+  renderCustomStats();
+}
+function removeCustomStat(i){
+  customStats.splice(i,1);
+  renderCustomStats();
+}
+function renderCustomStats(){
+  var c=document.getElementById('custom-stats-list');
+  c.innerHTML=customStats.map(function(s,i){
+    return '<div class="ctrl-row" style="margin-bottom:6px;">'+
+      '<input type="text" placeholder="Etiqueta (p.ej. Avituallamientos)" value="'+escH(s.label)+'" style="width:190px;" oninput="customStats['+i+'].label=this.value">'+
+      '<input type="text" placeholder="Valor (p.ej. 4)" value="'+escH(s.value)+'" style="width:90px;" oninput="customStats['+i+'].value=this.value">'+
+      '<button class="btn btn-danger" style="padding:5px 8px;font-size:10px;" onclick="removeCustomStat('+i+')">✕</button>'+
+    '</div>';
+  }).join('');
+}
+
 function addPOI(){pois.push({lat:0,lon:0,name:'Punto de interés',km:'0'});renderPOIs();}
 function activateMapClick(){mapClickMode=true;map.getContainer().style.cursor='crosshair';switchTab('mapa',document.querySelector('.tab'));setStatus('Haz clic en el mapa para colocar el punto','#e09a30');}
 function removePOI(i){pois.splice(i,1);renderPOIs();drawPOIMarkers();}
@@ -961,11 +1011,15 @@ function generateWidgetHTML(){
 
   var statsHtml='';
   if(showStats2){
-    statsHtml='<div style="display:flex;gap:20px;padding:8px 14px;background:#fafaf8;border-bottom:1px solid #e0ddd6;flex-wrap:wrap;">'+
-      '<span style="font-size:12px;color:#555;font-family:sans-serif;"><strong style="color:#1a1a1a;">'+escH(distVal)+'</strong> km</span>'+
-      '<span style="font-size:12px;color:#555;font-family:sans-serif;"><strong style="color:#1a1a1a;">+'+escH(upVal)+'</strong> m D+</span>'+
-      '<span style="font-size:12px;color:#555;font-family:sans-serif;"><strong style="color:#1a1a1a;">-'+escH(downVal)+'</strong> m D-</span>'+
-    '</div>';
+    var statItems=[];
+    if(document.getElementById('cfg-stat-dist').checked)statItems.push('<span style="font-size:12px;color:#555;font-family:sans-serif;"><strong style="color:#1a1a1a;">'+escH(distVal)+'</strong> km</span>');
+    if(document.getElementById('cfg-stat-up').checked)statItems.push('<span style="font-size:12px;color:#555;font-family:sans-serif;"><strong style="color:#1a1a1a;">+'+escH(upVal)+'</strong> m D+</span>');
+    if(document.getElementById('cfg-stat-down').checked)statItems.push('<span style="font-size:12px;color:#555;font-family:sans-serif;"><strong style="color:#1a1a1a;">-'+escH(downVal)+'</strong> m D-</span>');
+    customStats.forEach(function(s){
+      if(!s.label&&!s.value)return;
+      statItems.push('<span style="font-size:12px;color:#555;font-family:sans-serif;"><strong style="color:#1a1a1a;">'+escH(s.value)+'</strong> '+escH(s.label)+'</span>');
+    });
+    if(statItems.length)statsHtml='<div style="display:flex;gap:20px;padding:8px 14px;background:#fafaf8;border-bottom:1px solid #e0ddd6;flex-wrap:wrap;">'+statItems.join('')+'</div>';
   }
 
   var profHtml=showProf?'<div style="padding:10px 14px;background:#fff;border-top:1px solid #e0ddd6;"><canvas id="'+uid+'-chart" style="height:90px;width:100%;display:block;"></canvas></div>':'';
